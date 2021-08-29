@@ -21,11 +21,30 @@ __declspec(naked) int MonoInject()
 
 
 		auto domain = instance->monoDll.mono_domain_get();
-		auto domainAssemblyOpen = instance->monoDll.mono_domain_assembly_open(domain, "MyCheat.dll");
-		auto assemblyImage = instance->monoDll.mono_assembly_get_image(domainAssemblyOpen);
-		auto className = instance->monoDll.mono_class_from_name(assemblyImage, "MyNameSpace", "MyClass");
-		auto methodFromName = instance->monoDll.mono_class_get_method_from_name(className, "My Function", 0);
-		auto invoke = instance->monoDll.mono_runtime_invoke(methodFromName, NULL, NULL, NULL);
+		for (int i=0; i<instance->LibsToLoad.size(); i++)
+		{
+			auto domainAssemblyOpen = instance->monoDll.mono_domain_assembly_open(domain, instance->LibsToLoad.at(i).library.c_str());
+			if (domainAssemblyOpen != NULL)
+			{
+				auto assemblyImage = instance->monoDll.mono_assembly_get_image(domainAssemblyOpen);
+				if (assemblyImage != NULL)
+				{
+					auto className = instance->monoDll.mono_class_from_name(assemblyImage, instance->LibsToLoad.at(i).nameSpace.c_str(), instance->LibsToLoad.at(i).className.c_str());
+					if (className != NULL)
+					{
+						auto methodFromName = instance->monoDll.mono_class_get_method_from_name(className, instance->LibsToLoad.at(i).initializerMethodName.c_str(), 0);
+						auto invoke = instance->monoDll.mono_runtime_invoke(methodFromName, NULL, NULL, NULL);
+					}
+					else
+						OutputDebugString(L"Class name ended up being null!");
+				}
+				else
+					OutputDebugString(L"Assembly Image ended up being null!");
+			}
+			else
+				OutputDebugString(L"Domain Assembly Open returned null!");
+		}
+
 	}
 
 	__asm {

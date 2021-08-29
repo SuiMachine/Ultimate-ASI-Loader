@@ -4,6 +4,8 @@
 #include <thread>
 #include <iostream>
 #include <winnt.h>
+#include <queue>
+
 typedef DWORD(*LP_mono_security_get_mode)();
 typedef void*(*LP_mono_security_set_mode)(DWORD mode);
 typedef void*(*LP_mono_domain_get)();
@@ -26,12 +28,29 @@ struct MonoDLL
 	LP_mono_runtime_invoke mono_runtime_invoke;
 };
 
+struct LibInfo
+{
+	std::string library;
+	std::string nameSpace;
+	std::string className;
+	std::string initializerMethodName;
+
+	LibInfo(std::string library, std::string nameSpace, std::string className, std::string initializerMethodName)
+	{
+		this->library = library;
+		this->nameSpace = nameSpace;
+		this->className = className;
+		this->initializerMethodName = initializerMethodName;
+	}
+};
+
 
 class MonoLibLoader
 {
 public:
 	static MonoLibLoader* GetInstance();
 	MonoDLL monoDll;
+	std::vector<LibInfo> LibsToLoad;
 	void StartThread();
 	void DoThreadWork(MonoLibLoader* object) { object->Inject(); };
 	void Deinject(const WCHAR* text);

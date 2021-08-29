@@ -323,7 +323,12 @@ void LoadOriginalLibrary()
 #endif
 }
 
-void FindFiles(WIN32_FIND_DATAW* fd)
+std::string WStringToString(std::wstring wstr)
+{
+    return std::string(wstr.begin(), wstr.end());
+}
+
+void BuildLibsToInjectList(WIN32_FIND_DATAW* fd)
 {
     auto dir = GetCurrentDirectoryW();
 
@@ -359,12 +364,16 @@ void FindFiles(WIN32_FIND_DATAW* fd)
                         }
                         else
                         {
-                            auto procedure = (void(*)())GetProcAddress(h, "InitializeMomo");
-
-                            if (procedure != NULL)
-                            {
-                                procedure();
-                            }
+                            auto fileName = std::wstring(fd->cFileName);
+                            auto libPath = dir + L"\\" + fileName;
+                            auto namespaceName = fileName.substr(0, fileName.length() - 4);
+                            //Maybe one day we can write some ini file for each lib so it's not tied so heavily
+                            MonoLibLoader::GetInstance()->LibsToLoad.push_back(LibInfo(
+                                WStringToString(libPath),
+                                WStringToString(namespaceName),
+                                WStringToString(namespaceName),
+                                "Initialize"
+                            ));
                         }
                     }
                 }
@@ -447,8 +456,8 @@ void LoadPlugins()
 
         if (SetCurrentDirectoryW(L"mono_plugins\\"))
         {
+            BuildLibsToInjectList(&fd);
             auto monoInjector = MonoLibLoader::GetInstance();
-            FindFiles(&fd);
         }
     }
 

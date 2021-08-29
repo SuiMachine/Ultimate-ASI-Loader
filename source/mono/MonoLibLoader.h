@@ -6,11 +6,11 @@
 #include <winnt.h>
 typedef DWORD(*LP_mono_security_get_mode)();
 typedef void(*LP_mono_security_set_mode)(DWORD mode);
-typedef void(*LP_mono_domain_get)();
-typedef void(*LP_mono_domain_assembly_open)(void* domain, char* file);
+typedef void*(*LP_mono_domain_get)();
+typedef void(*LP_mono_domain_assembly_open)(void* domain, const char* file);
 typedef void(*LP_mono_assembly_get_image)(void* assembly);
-typedef void(*LP_mono_class_from_name)(void* image, char* _namespace, char* name);
-typedef void(*LP_mono_class_get_method_from_name)(void* _class, char* name, DWORD param_count);
+typedef void(*LP_mono_class_from_name)(void* image, const char* _namespace, const char* name);
+typedef void(*LP_mono_class_get_method_from_name)(void* _class, const char* name, DWORD param_count);
 typedef void(*LP_mono_runtime_invoke)(void* method, void* instance, void* params, void* exc);
 
 struct MonoDLL
@@ -34,8 +34,8 @@ public:
 	MonoDLL monoDll;
 	void StartThread();
 	void DoThreadWork(MonoLibLoader* object) { object->Inject(); };
+	void Deinject(const WCHAR* text);
 private:
-	MonoLibLoader();
 	void Inject();
 	static MonoLibLoader* instance;
 	std::thread loaderThread;

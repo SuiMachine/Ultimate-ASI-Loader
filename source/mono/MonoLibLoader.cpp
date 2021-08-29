@@ -3,16 +3,34 @@
 #include <string>
 
 //For base reference see https://www.unknowncheats.me/forum/rust/114627-loader-titanium-alternative.html
-VOID(*mono_security_set_mode)(DWORD mode);
+DWORD dwReturn;
+__declspec(naked) void MonoInject()
+{
+	__asm
+	{
+		push dwReturn;
+		pushfd;
+		pushad;
+	};
 
-PVOID(*mono_domain_get)();
-PVOID(*mono_domain_assembly_open)(PVOID domain, PCHAR file);
-PVOID(*mono_assembly_get_image)(PVOID assembly);
-PVOID(*mono_class_from_name)(PVOID image, PCHAR namespaceT, PCHAR name);
-PVOID(*mono_class_get_method_from_name)(PVOID classT, PCHAR name, DWORD param_count);
-PVOID(*mono_runtime_invoke)(PVOID method, PVOID instance, PVOID* params, PVOID exc);
-#define MONO_PROC(NAME)\
-	NAME = GetProcAddress(hMono, #NAME); }
+	{
+		auto dllStruct = MonoLibLoader::GetInstance()->monoDll;
+		//dllStruct.mono_security_set_mode(NULL);
+		auto lmao = dllStruct.mono_domain_get();
+
+	}
+
+	__asm {
+		// restore the execution state
+		popad;
+		popfd;
+		// go about original game 'bidness
+		ret;
+	}
+
+
+
+}
 
 MonoLibLoader* MonoLibLoader::instance = NULL;
 
@@ -33,17 +51,16 @@ void MonoLibLoader::StartThread()
 	loaderThread = std::thread(&MonoLibLoader::DoThreadWork, this, this);
 }
 
-MonoLibLoader::MonoLibLoader()
+void MonoLibLoader::Deinject(const WCHAR* text)
 {
+	if (text)
+	{
+		MessageBox(NULL, text, L"Error", MB_OK | MB_ICONERROR | MB_TOPMOST);
+	}
 }
-
-
 
 void MonoLibLoader::Inject()
 {
-	DWORD id, pid;
-	HANDLE hSs, hThread;
-	THREADENTRY32 t;
 	FILETIME CreationTime, ExitTime, KernelTime, UserTime;
 	CONTEXT context = { CONTEXT_CONTROL };
 
@@ -61,7 +78,64 @@ void MonoLibLoader::Inject()
 	monoDll.mono_class_get_method_from_name = (LP_mono_class_get_method_from_name)GetProcAddress(monoDll.dll, "mono_class_get_method_from_name");
 	monoDll.mono_runtime_invoke = (LP_mono_runtime_invoke)GetProcAddress(monoDll.dll, "mono_runtime_invoke");
 
-#undef MONO_PROC
+	DWORD id = NULL;
+	DWORD pID = GetCurrentProcessId();
+	HANDLE hSs = CreateToolhelp32Snapshot(TH32CS_SNAPALL, pID);
+	THREADENTRY32 t;
+	t.dwSize = sizeof(THREADENTRY32);
+	if (hSs)
+	{
+		unsigned long time = 0xFFFFFFFFFFFFFFFF;
+		if (Thread32First(hSs, &t))
+		{
+			do
+			{
+				if (t.th32OwnerProcessID == pID)
+				{
+					HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION, FALSE, t.th32ThreadID);
+					if (hThread)
+					{
+						if (GetThreadTimes(hThread, &CreationTime, &ExitTime, &KernelTime, &UserTime))
+						{
+							// nasty casting lol
+							if (time > (unsigned long)&CreationTime)
+							{
+								time = (unsigned long)&CreationTime;
+								id = t.th32ThreadID;
+							}
+						}
+						CloseHandle(hThread);
+					}
+				}
+			} while (Thread32Next(hSs, &t));
+		}
+		else
+		{
+			Deinject(L"Couldn't acquire the main thread.");
+			return;
+		}
+	}
+
+	if (id)
+	{
+		HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION | THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_SET_CONTEXT, FALSE, id);
+		if (hThread)
+		{
+			SuspendThread(hThread);
+			if (GetThreadContext(hThread, &context))
+			{
+				dwReturn = context.Eip;
+				MonoInject();
+				SetThreadContext(hThread, &context);
+			}
+			else
+			{
+				Deinject(L"Couldn't hijack the main thread!");
+				return;
+			}
+		}
+	}
 }
+
 
 

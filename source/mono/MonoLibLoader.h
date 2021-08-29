@@ -54,8 +54,11 @@ public:
 	void StartThread();
 	void DoThreadWork(MonoLibLoader* object) { object->Inject(); };
 	void Deinject(const WCHAR* text);
+	void SetMainThread(HANDLE mod) { MonoThread = mod; }	//I guess that's one advantage of wrapper DLL
 private:
+	HANDLE MonoThread;
 	void Inject();
+	void InjectLibraries();
 	static MonoLibLoader* instance;
 	std::thread loaderThread;
 };

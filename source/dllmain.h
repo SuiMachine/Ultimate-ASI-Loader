@@ -3220,3 +3220,5 @@ void _VerQueryValueW() { version.VerQueryValueW(); }
 
 #pragma runtime_checks( "", restore )
 #endif
+
+void LoadPlugins();

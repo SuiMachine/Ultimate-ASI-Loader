@@ -4,36 +4,36 @@
 
 //For base reference see https://www.unknowncheats.me/forum/rust/114627-loader-titanium-alternative.html
 intptr_t dwReturn;
-__declspec(naked) int MonoInject()
+
+void DoTheHighLevelMonoThing()
 {
-	__asm
+	auto instance = MonoLibLoader::GetInstance();
+
+	instance->monoDll.mono_security_set_mode(NULL);
+
+	auto domain = instance->monoDll.mono_domain_get();
+	try
 	{
-		push dwReturn;
-		pushfd;
-		pushad;
-	};
-
-	{
-
-		auto instance = MonoLibLoader::GetInstance();
-
-		instance->monoDll.mono_security_set_mode(NULL);
-
-
-		auto domain = instance->monoDll.mono_domain_get();
-		for (int i=0; i<instance->LibsToLoad.size(); i++)
+		for (int i = 0; i < instance->LibsToLoad.size(); i++)
 		{
-			auto domainAssemblyOpen = instance->monoDll.mono_domain_assembly_open(domain, instance->LibsToLoad.at(i).library.c_str());
+			auto domainAssemblyOpen = instance->monoDll.mono_domain_assembly_open(domain, "G:\\Steam\\steamapps\\common\\Deus Ex The Fall\\mono_plugins\\TestLibrary.dll");
 			if (domainAssemblyOpen != NULL)
 			{
 				auto assemblyImage = instance->monoDll.mono_assembly_get_image(domainAssemblyOpen);
 				if (assemblyImage != NULL)
 				{
-					auto className = instance->monoDll.mono_class_from_name(assemblyImage, instance->LibsToLoad.at(i).nameSpace.c_str(), instance->LibsToLoad.at(i).className.c_str());
+					auto className = instance->monoDll.mono_class_from_name(assemblyImage, "TestLibrary", "TestLibrary");
 					if (className != NULL)
 					{
-						auto methodFromName = instance->monoDll.mono_class_get_method_from_name(className, instance->LibsToLoad.at(i).initializerMethodName.c_str(), 0);
-						auto invoke = instance->monoDll.mono_runtime_invoke(methodFromName, NULL, NULL, NULL);
+						auto methodFromName = instance->monoDll.mono_class_get_method_from_name(className, "Initialize", 0);
+						if (methodFromName != NULL)
+						{
+							auto result = instance->monoDll.mono_runtime_invoke(methodFromName, NULL, NULL, NULL);
+							if(result == NULL)
+								OutputDebugString(L"Fuck!");
+						}
+						else
+							OutputDebugString(L"Method name ended up being null!");
 					}
 					else
 						OutputDebugString(L"Class name ended up being null!");
@@ -44,8 +44,24 @@ __declspec(naked) int MonoInject()
 			else
 				OutputDebugString(L"Domain Assembly Open returned null!");
 		}
+	}
+	catch (const std::exception e)
+	{
 
 	}
+
+}
+
+__declspec(naked) int MonoInject()
+{
+	__asm
+	{
+		push dwReturn;
+		pushfd;
+		pushad;
+	};
+
+	DoTheHighLevelMonoThing();
 
 	__asm {
 		// restore the execution state
@@ -56,6 +72,7 @@ __declspec(naked) int MonoInject()
 	}
 }
 
+
 MonoLibLoader* MonoLibLoader::instance = NULL;
 
 MonoLibLoader* MonoLibLoader::GetInstance()
@@ -63,7 +80,6 @@ MonoLibLoader* MonoLibLoader::GetInstance()
 	if (!instance)
 	{
 		instance = new MonoLibLoader();
-		instance->StartThread();
 		return instance;
 	}
 	else
@@ -93,7 +109,7 @@ void MonoLibLoader::Inject()
 
 	// acquire functions
 	auto test = GetProcAddress(this->monoDll.dll, "mono_security_get_mode");
-	monoDll.mono_security_get_mode = (LP_mono_security_get_mode)GetProcAddress(monoDll.dll, "mono_security_get_mode");
+	//monoDll.mono_security_get_mode = (LP_mono_security_get_mode)(void))GetProcAddress(monoDll.dll, "mono_security_get_mode");
 	monoDll.mono_security_set_mode = (LP_mono_security_set_mode)GetProcAddress(monoDll.dll, "mono_security_set_mode");
 	monoDll.mono_domain_get = (LP_mono_domain_get)GetProcAddress(monoDll.dll, "mono_domain_get");
 	monoDll.mono_domain_assembly_open = (LP_mono_domain_assembly_open)GetProcAddress(monoDll.dll, "mono_domain_assembly_open");
@@ -142,6 +158,7 @@ void MonoLibLoader::Inject()
 
 	if (id)
 	{
+		Sleep(2000);
 		HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION | THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_SET_CONTEXT, FALSE, id);
 		if (hThread)
 		{

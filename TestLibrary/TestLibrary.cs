@@ -1,22 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
 using UnityEngine;
 
 namespace TestLibrary
 {
-    public class TestObject : MonoBehaviour
+    public class TestLibrary : MonoBehaviour
     {
-        public static TestObject instance;
+        public static TestLibrary instance;
         bool display = false;
 
         public static void Initialize()
 		{
             if(instance != null)
 			{
+                using (StreamWriter @out = new StreamWriter(new FileStream("ExampleAssembly.log", FileMode.OpenOrCreate)))
+                {
+
+                    //Let us know everything is okay and we're up and running.
+                    @out.WriteLine("Injection worked! Bye!");
+                    @out.Flush();
+                    @out.Close();
+
+                }
+
                 var newGameObject = new GameObject("TestObject");
-                instance = newGameObject.GetComponent<TestObject>();
+                instance = newGameObject.GetComponent<TestLibrary>();
                 DontDestroyOnLoad(newGameObject);
 
                 //Probably not needed

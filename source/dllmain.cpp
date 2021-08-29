@@ -4,6 +4,8 @@
 #include <fstream>
 #include "mono/MonoLibLoader.h"
 #include <thread>
+#include <codecvt>
+
 
 HMODULE hm;
 std::vector<std::wstring> iniPaths;
@@ -325,7 +327,7 @@ void LoadOriginalLibrary()
 
 std::string WStringToString(std::wstring wstr)
 {
-    return std::string(wstr.begin(), wstr.end());
+    return std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>("").to_bytes(wstr);
 }
 
 void BuildLibsToInjectList(WIN32_FIND_DATAW* fd)
@@ -457,7 +459,7 @@ void LoadPlugins()
         if (SetCurrentDirectoryW(L"mono_plugins\\"))
         {
             BuildLibsToInjectList(&fd);
-            auto monoInjector = MonoLibLoader::GetInstance();
+            MonoLibLoader::GetInstance()->StartThread();
         }
     }
 

@@ -8,7 +8,6 @@ intptr_t dwReturn;
 void DoTheHighLevelMonoThing()
 {
 	auto instance = MonoLibLoader::GetInstance();
-
 	instance->monoDll.mono_security_set_mode(NULL);
 
 	auto domain = instance->monoDll.mono_domain_get();
@@ -22,15 +21,19 @@ void DoTheHighLevelMonoThing()
 				auto assemblyImage = instance->monoDll.mono_assembly_get_image(domainAssemblyOpen);
 				if (assemblyImage != NULL)
 				{
-					auto className = instance->monoDll.mono_class_from_name(assemblyImage, "TestLibrary", "TestLibrary");
-					if (className != NULL)
+					auto klass = instance->monoDll.mono_class_from_name(assemblyImage, "TestLibrary", "TestLibrary");
+					if (klass != NULL)
 					{
-						auto methodFromName = instance->monoDll.mono_class_get_method_from_name(className, "Initialize", 0);
+						auto methodFromName = instance->monoDll.mono_class_get_method_from_name(klass, "Initialize", 0);
 						if (methodFromName != NULL)
 						{
-							auto result = instance->monoDll.mono_runtime_invoke(methodFromName, NULL, NULL, NULL);
-							if(result == NULL)
+							auto result = instance->monoDll.mono_runtime_invoke(methodFromName, nullptr, nullptr, nullptr);
+							if (result == NULL)
+							{
+								//auto message = (char*)(exceptionRef + 0x10);
 								OutputDebugString(L"Fuck!");
+
+							}
 						}
 						else
 							OutputDebugString(L"Method name ended up being null!");

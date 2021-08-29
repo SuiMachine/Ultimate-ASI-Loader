@@ -374,7 +374,7 @@ void BuildLibsToInjectList(WIN32_FIND_DATAW* fd)
                                 WStringToString(libPath),
                                 WStringToString(namespaceName),
                                 WStringToString(namespaceName),
-                                "Initialize"
+                                "Init"
                             ));
                         }
                     }

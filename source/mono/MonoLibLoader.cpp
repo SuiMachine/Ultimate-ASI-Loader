@@ -15,24 +15,22 @@ void DoTheHighLevelMonoThing()
 	{
 		for (int i = 0; i < instance->LibsToLoad.size(); i++)
 		{
-			auto domainAssemblyOpen = instance->monoDll.mono_domain_assembly_open(domain, "G:\\Steam\\steamapps\\common\\Deus Ex The Fall\\mono_plugins\\TestLibrary.dll");
+			auto domainAssemblyOpen = instance->monoDll.mono_domain_assembly_open(domain, instance->LibsToLoad.at(i).library.c_str());
 			if (domainAssemblyOpen != NULL)
 			{
 				auto assemblyImage = instance->monoDll.mono_assembly_get_image(domainAssemblyOpen);
 				if (assemblyImage != NULL)
 				{
-					auto klass = instance->monoDll.mono_class_from_name(assemblyImage, "TestLibrary", "TestLibrary");
+					auto klass = instance->monoDll.mono_class_from_name(assemblyImage, instance->LibsToLoad.at(i).className.c_str(), instance->LibsToLoad.at(i).className.c_str());
 					if (klass != NULL)
 					{
-						auto methodFromName = instance->monoDll.mono_class_get_method_from_name(klass, "Initialize", 0);
+						auto methodFromName = instance->monoDll.mono_class_get_method_from_name(klass, instance->LibsToLoad.at(i).initializerMethodName.c_str(), 0);
 						if (methodFromName != NULL)
 						{
-							auto result = instance->monoDll.mono_runtime_invoke(methodFromName, nullptr, nullptr, nullptr);
+							auto result = instance->monoDll.mono_runtime_invoke(methodFromName, NULL, NULL, NULL);
 							if (result == NULL)
 							{
-								//auto message = (char*)(exceptionRef + 0x10);
 								OutputDebugString(L"Fuck!");
-
 							}
 						}
 						else

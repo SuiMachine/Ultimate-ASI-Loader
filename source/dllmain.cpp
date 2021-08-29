@@ -1,11 +1,7 @@
 #include "dllmain.h"
 #include "exception.hpp"
 #include <initguid.h>
-
-#if !X64
-#include <d3d8to9\source\d3d8to9.hpp>
-extern "C" Direct3D8 *WINAPI Direct3DCreate8(UINT SDKVersion);
-#endif
+#include <fstream>
 
 HMODULE hm;
 std::vector<std::wstring> iniPaths;
@@ -296,7 +292,7 @@ void LoadOriginalLibrary()
     }
     else
     {
-        MessageBox(0, TEXT("This library isn't supported. Try to rename it to d3d8.dll, d3d9.dll, d3d11.dll, winmm.dll, wininet.dll, version.dll, \
+        MessageBox(0, TEXT("This library isn't supported. Try to rename it to d3d9.dll, d3d11.dll, winmm.dll, wininet.dll, version.dll, \
             msacm32.dll, dinput.dll, dinput8.dll, dsound.dll, vorbisFile.dll, msvfw32.dll, xlive.dll or ddraw.dll."), TEXT("ASI Loader"), MB_ICONERROR);
         ExitProcess(0);
     }

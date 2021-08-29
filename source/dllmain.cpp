@@ -202,12 +202,6 @@ void LoadOriginalLibrary()
     {
         ddraw.LoadOriginalLibrary(LoadLibraryW(szSystemPath));
     }
-    else if (iequals(szSelfName, L"d3d8.dll"))
-    {
-        d3d8.LoadOriginalLibrary(LoadLibraryW(szSystemPath));
-        if (GetPrivateProfileIntW(L"globalsets", L"used3d8to9", FALSE, iniPaths))
-            d3d8.Direct3DCreate8 = (FARPROC)Direct3DCreate8;
-    }
     else if (iequals(szSelfName, L"d3d9.dll"))
     {
         d3d9.LoadOriginalLibrary(LoadLibraryW(szSystemPath));
@@ -330,42 +324,6 @@ void LoadOriginalLibrary()
     }
 #endif
 }
-
-#if !X64
-void Direct3D8DisableMaximizedWindowedModeShim()
-{
-    auto nDirect3D8DisableMaximizedWindowedModeShim = GetPrivateProfileIntW(L"globalsets", L"Direct3D8DisableMaximizedWindowedModeShim", FALSE, iniPaths);
-    if (nDirect3D8DisableMaximizedWindowedModeShim)
-    {
-        HMODULE pd3d8 = NULL;
-        if (d3d8.dll)
-        {
-            pd3d8 = d3d8.dll;
-        }
-        else
-        {
-            pd3d8 = LoadLibraryW(L"d3d8.dll");
-            if (!pd3d8)
-            {
-                pd3d8 = LoadLibraryW(SHGetKnownFolderPath(FOLDERID_System, 0, nullptr) + L'\\' + L"d3d8.dll");
-            }
-        }
-
-        if (pd3d8)
-        {
-            auto addr = (uintptr_t)GetProcAddress(pd3d8, "Direct3D8EnableMaximizedWindowedModeShim");
-            if (addr)
-            {
-                DWORD Protect;
-                VirtualProtect((LPVOID)(addr + 6), 4, PAGE_EXECUTE_READWRITE, &Protect);
-                *(uint32_t*)(addr + 6) = 0;
-                *(uint32_t*)(*(uint32_t*)(addr + 2)) = 0;
-                VirtualProtect((LPVOID)(addr + 6), 4, Protect, &Protect);
-            }
-        }
-    }
-}
-#endif
 
 void FindFiles(WIN32_FIND_DATAW* fd)
 {
@@ -510,9 +468,6 @@ void LoadEverything()
     if (_InterlockedCompareExchange(&LoadedPluginsYet, 1, 0) != 0) return;
 
     LoadOriginalLibrary();
-#if !X64
-    Direct3D8DisableMaximizedWindowedModeShim();
-#endif
     LoadPlugins();
 }
 

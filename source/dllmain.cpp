@@ -2,6 +2,8 @@
 #include "exception.hpp"
 #include <initguid.h>
 #include <fstream>
+#include "mono/MonoLibLoader.h"
+#include <thread>
 
 HMODULE hm;
 std::vector<std::wstring> iniPaths;
@@ -293,7 +295,7 @@ void LoadOriginalLibrary()
     else
     {
         MessageBox(0, TEXT("This library isn't supported. Try to rename it to d3d9.dll, d3d11.dll, winmm.dll, wininet.dll, version.dll, \
-            msacm32.dll, dinput.dll, dinput8.dll, dsound.dll, vorbisFile.dll, msvfw32.dll, xlive.dll or ddraw.dll."), TEXT("ASI Loader"), MB_ICONERROR);
+            msacm32.dll, dinput.dll, dinput8.dll, dsound.dll, vorbisFile.dll, msvfw32.dll, xlive.dll or ddraw.dll."), TEXT(".NET Loader"), MB_ICONERROR);
         ExitProcess(0);
     }
 #else
@@ -315,7 +317,7 @@ void LoadOriginalLibrary()
     }
     else
     {
-        MessageBox(0, TEXT("This library isn't supported. Try to rename it to dsound.dll, dinput8.dll, wininet.dll or version.dll."), TEXT("ASI Loader"), MB_ICONERROR);
+        MessageBox(0, TEXT("This library isn't supported. Try to rename it to dsound.dll, dinput8.dll, wininet.dll or version.dll."), TEXT(".NET Loader"), MB_ICONERROR);
         ExitProcess(0);
     }
 #endif
@@ -325,7 +327,7 @@ void FindFiles(WIN32_FIND_DATAW* fd)
 {
     auto dir = GetCurrentDirectoryW();
 
-    HANDLE asiFile = FindFirstFileW(L"*.asi", fd);
+    HANDLE asiFile = FindFirstFileW(L"*.dll", fd);
     if (asiFile != INVALID_HANDLE_VALUE)
     {
         do
@@ -335,9 +337,9 @@ void FindFiles(WIN32_FIND_DATAW* fd)
                 auto pos = wcslen(fd->cFileName);
 
                 if (fd->cFileName[pos - 4] == '.' &&
-                        (fd->cFileName[pos - 3] == 'a' || fd->cFileName[pos - 3] == 'A') &&
-                        (fd->cFileName[pos - 2] == 's' || fd->cFileName[pos - 2] == 'S') &&
-                        (fd->cFileName[pos - 1] == 'i' || fd->cFileName[pos - 1] == 'I'))
+                        (fd->cFileName[pos - 3] == 'd' || fd->cFileName[pos - 3] == 'D') &&
+                        (fd->cFileName[pos - 2] == 'l' || fd->cFileName[pos - 2] == 'L') &&
+                        (fd->cFileName[pos - 1] == 'l' || fd->cFileName[pos - 1] == 'L'))
                 {
                     auto path = dir + L'\\' + fd->cFileName;
 
@@ -352,12 +354,12 @@ void FindFiles(WIN32_FIND_DATAW* fd)
                             if (e != ERROR_DLL_INIT_FAILED) // in case dllmain returns false
                             {
                                 std::wstring msg = L"Unable to load " + std::wstring(fd->cFileName) + L". Error: " + std::to_wstring(e);
-                                MessageBoxW(0, msg.c_str(), L"ASI Loader", MB_ICONERROR);
+                                MessageBoxW(0, msg.c_str(), L"Mono Loader", MB_ICONERROR);
                             }
                         }
                         else
                         {
-                            auto procedure = (void(*)())GetProcAddress(h, "InitializeASI");
+                            auto procedure = (void(*)())GetProcAddress(h, "InitializeMomo");
 
                             if (procedure != NULL)
                             {
@@ -436,23 +438,19 @@ void LoadPlugins()
 #endif
 
     auto nWantsToLoadPlugins = GetPrivateProfileIntW(L"globalsets", L"loadplugins", TRUE, iniPaths);
-    auto nWantsToLoadFromScriptsOnly = GetPrivateProfileIntW(L"globalsets", L"loadfromscriptsonly", FALSE, iniPaths);
 
     if (nWantsToLoadPlugins)
     {
         WIN32_FIND_DATAW fd;
-        if (!nWantsToLoadFromScriptsOnly)
-            FindFiles(&fd);
 
         SetCurrentDirectoryW(szSelfPath.c_str());
 
-        if (SetCurrentDirectoryW(L"scripts\\"))
+        if (SetCurrentDirectoryW(L"mono_plugins\\"))
+        {
+            MessageBox(NULL, L"Test", L"Test", 0);
+            auto monoInjector = MonoLibLoader::GetInstance();
             FindFiles(&fd);
-
-        SetCurrentDirectoryW(szSelfPath.c_str());
-
-        if (SetCurrentDirectoryW(L"plugins\\"))
-            FindFiles(&fd);
+        }
     }
 
     SetCurrentDirectoryW(oldDir.c_str()); // Reset the current directory

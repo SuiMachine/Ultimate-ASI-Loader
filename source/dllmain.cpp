@@ -447,7 +447,6 @@ void LoadPlugins()
 
         if (SetCurrentDirectoryW(L"mono_plugins\\"))
         {
-            MessageBox(NULL, L"Test", L"Test", 0);
             auto monoInjector = MonoLibLoader::GetInstance();
             FindFiles(&fd);
         }

@@ -2,7 +2,7 @@
 #include "MonoLibLoader.h"
 #include <string>
 
-DWORD(*mono_security_get_mode)();
+//For base reference see https://www.unknowncheats.me/forum/rust/114627-loader-titanium-alternative.html
 VOID(*mono_security_set_mode)(DWORD mode);
 
 PVOID(*mono_domain_get)();
@@ -35,8 +35,6 @@ void MonoLibLoader::StartThread()
 
 MonoLibLoader::MonoLibLoader()
 {
-
-
 }
 
 
@@ -44,24 +42,24 @@ MonoLibLoader::MonoLibLoader()
 void MonoLibLoader::Inject()
 {
 	DWORD id, pid;
-	HMODULE hMono;
 	HANDLE hSs, hThread;
 	THREADENTRY32 t;
 	FILETIME CreationTime, ExitTime, KernelTime, UserTime;
 	CONTEXT context = { CONTEXT_CONTROL };
 
 	// poll for mono
-	while ((hMono = GetModuleHandle(L"mono.dll")) == NULL) Sleep(10);
+	while ((this->monoDll.dll = GetModuleHandle(L"mono.dll")) == NULL) Sleep(10);
 
 	// acquire functions
-	auto test = GetProcAddress(hMono, "mono_security_set_mode");
-	//(PVOID)MONO_PROC(mono_security_set_mode);
-	//(PVOID)MONO_PROC(mono_domain_get);
-	//(PVOID)MONO_PROC(mono_domain_assembly_open);
-	//(PVOID)MONO_PROC(mono_assembly_get_image);
-	//(PVOID)MONO_PROC(mono_class_from_name);
-	//(PVOID)MONO_PROC(mono_class_get_method_from_name);
-	//(PVOID)MONO_PROC(mono_runtime_invoke);
+	auto test = GetProcAddress(this->monoDll.dll, "mono_security_get_mode");
+	monoDll.mono_security_get_mode = (LP_mono_security_get_mode)GetProcAddress(monoDll.dll, "mono_security_get_mode");
+	monoDll.mono_security_set_mode = (LP_mono_security_set_mode)GetProcAddress(monoDll.dll, "mono_security_set_mode");
+	monoDll.mono_domain_get = (LP_mono_domain_get)GetProcAddress(monoDll.dll, "mono_domain_get");
+	monoDll.mono_domain_assembly_open = (LP_mono_domain_assembly_open)GetProcAddress(monoDll.dll, "mono_domain_assembly_open");
+	monoDll.mono_assembly_get_image = (LP_mono_assembly_get_image)GetProcAddress(monoDll.dll, "mono_assembly_get_image");
+	monoDll.mono_class_from_name = (LP_mono_class_from_name)GetProcAddress(monoDll.dll, "mono_class_from_name");
+	monoDll.mono_class_get_method_from_name = (LP_mono_class_get_method_from_name)GetProcAddress(monoDll.dll, "mono_class_get_method_from_name");
+	monoDll.mono_runtime_invoke = (LP_mono_runtime_invoke)GetProcAddress(monoDll.dll, "mono_runtime_invoke");
 
 #undef MONO_PROC
 }

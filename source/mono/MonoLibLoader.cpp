@@ -3,8 +3,8 @@
 #include <string>
 
 //For base reference see https://www.unknowncheats.me/forum/rust/114627-loader-titanium-alternative.html
-DWORD dwReturn;
-__declspec(naked) void MonoInject()
+intptr_t dwReturn;
+__declspec(naked) int MonoInject()
 {
 	__asm
 	{
@@ -14,10 +14,18 @@ __declspec(naked) void MonoInject()
 	};
 
 	{
-		auto dllStruct = MonoLibLoader::GetInstance()->monoDll;
-		//dllStruct.mono_security_set_mode(NULL);
-		auto lmao = dllStruct.mono_domain_get();
 
+		auto instance = MonoLibLoader::GetInstance();
+
+		instance->monoDll.mono_security_set_mode(NULL);
+
+
+		auto domain = instance->monoDll.mono_domain_get();
+		auto domainAssemblyOpen = instance->monoDll.mono_domain_assembly_open(domain, "MyCheat.dll");
+		auto assemblyImage = instance->monoDll.mono_assembly_get_image(domainAssemblyOpen);
+		auto className = instance->monoDll.mono_class_from_name(assemblyImage, "MyNameSpace", "MyClass");
+		auto methodFromName = instance->monoDll.mono_class_get_method_from_name(className, "My Function", 0);
+		auto invoke = instance->monoDll.mono_runtime_invoke(methodFromName, NULL, NULL, NULL);
 	}
 
 	__asm {
@@ -27,9 +35,6 @@ __declspec(naked) void MonoInject()
 		// go about original game 'bidness
 		ret;
 	}
-
-
-
 }
 
 MonoLibLoader* MonoLibLoader::instance = NULL;
@@ -125,7 +130,7 @@ void MonoLibLoader::Inject()
 			if (GetThreadContext(hThread, &context))
 			{
 				dwReturn = context.Eip;
-				MonoInject();
+				context.Eip = (intptr_t)MonoInject;
 				SetThreadContext(hThread, &context);
 			}
 			else
@@ -133,6 +138,7 @@ void MonoLibLoader::Inject()
 				Deinject(L"Couldn't hijack the main thread!");
 				return;
 			}
+			ResumeThread(hThread);
 		}
 	}
 }

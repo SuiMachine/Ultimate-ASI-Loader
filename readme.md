@@ -32,7 +32,7 @@ It was designed to inject any wanted class and create MonoObject inside Unity's 
 In order to install it, you just need to place DLL into game directory. Usually it works as dinput8.dll, but if it's not, there is a possibility to rename it(see the list of supported names above).
 
 ## USAGE
-To use .NET libary injection compile your libraries to preferbably use NET 3.5 (Mono 2.0 wasn't tested) and put them in 'mono_plugins'.
+To use .NET libary injection compile your libraries (Mono 2.0 wasn't tested) and put them in 'mono_plugins'. Dependencies seem to for now crash the program.
 
 ~~Put ASI files in game root directory, 'scripts' or 'plugins' folder.~~
 ~~If configuration is necessary, global.ini file can be placed to 'scripts' or 'plugins' folder. It can be used alongside the chosen dll and if so, it is also possible to use dll name for ini file, e.g. version.dll/version.ini.~~

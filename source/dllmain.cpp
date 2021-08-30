@@ -367,6 +367,9 @@ void BuildLibsToInjectList(WIN32_FIND_DATAW* fd)
                         else
                         {
                             auto fileName = std::wstring(fd->cFileName);
+                            auto ignoreFile = fileName.substr(0, fileName.length() - 4) + L".ignore";
+                            if (std::filesystem::exists(ignoreFile))
+                                continue;
                             auto libPath = dir + L"\\" + fileName;
                             auto namespaceName = fileName.substr(0, fileName.length() - 4);
                             //Maybe one day we can write some ini file for each lib so it's not tied so heavily

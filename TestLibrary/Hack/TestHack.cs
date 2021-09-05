@@ -1,9 +1,11 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace TestLibrary.Hack
 {
 	class TestHack : MonoBehaviour
 	{
+
 		public static TestHack instance;
 		bool display = false;
 
@@ -18,7 +20,13 @@ namespace TestLibrary.Hack
 				//Probably not needed
 				instance.gameObject.SetActive(true);
 				instance.enabled = true;
+				Meebey.SmartIrc4net.IrcClient client = new Meebey.SmartIrc4net.IrcClient();
 			}
+		}
+
+		private static void Client_OnConnected(object sender, System.EventArgs e)
+		{
+			Debug.Log(e);
 		}
 
 		void Update()

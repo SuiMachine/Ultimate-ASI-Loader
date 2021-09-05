@@ -334,59 +334,86 @@ void BuildLibsToInjectList(WIN32_FIND_DATAW* fd)
 {
     auto dir = GetCurrentDirectoryW();
 
-    HANDLE asiFile = FindFirstFileW(L"*.dll", fd);
-    if (asiFile != INVALID_HANDLE_VALUE)
+    if (std::filesystem::exists(std::wstring(dir) + TEXT("/_DependancyOrder.ini")))
     {
-        do
+        std::wifstream dependancyIniReader;
+        dependancyIniReader.open(std::wstring(dir) + TEXT("/_DependancyOrder.ini"), std::ios::in | std::ios::out | std::ios::binary);
+        std::wstring line;
+        while (std::getline(dependancyIniReader, line))
         {
-            if (!(fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+            auto fileName = dir + TEXT("/") + line.substr(0, line.length() - 1);
+            HANDLE dllFile = FindFirstFileW(fileName.c_str(), fd);
+            if (dllFile != INVALID_HANDLE_VALUE)
             {
-                auto pos = wcslen(fd->cFileName);
+                auto namespaceName = std::wstring(fd->cFileName);
+                namespaceName = namespaceName.substr(0, namespaceName.length() - 4);
+                //Maybe one day we can write some ini file for each lib so it's not tied so heavily
+                MonoLibLoader::GetInstance()->LibsToLoad.push_back(LibInfo(
+                    WStringToString(fileName),
+                    WStringToString(namespaceName),
+                    WStringToString(namespaceName),
+                    "Init"
+                ));
+            }
 
-                if (fd->cFileName[pos - 4] == '.' &&
+            FindClose(dllFile);
+        }
+    }
+    else
+    {
+        HANDLE dllFile = FindFirstFileW(L"*.dll", fd);
+        if (dllFile != INVALID_HANDLE_VALUE)
+        {
+            do
+            {
+                if (!(fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+                {
+                    auto pos = wcslen(fd->cFileName);
+
+                    if (fd->cFileName[pos - 4] == '.' &&
                         (fd->cFileName[pos - 3] == 'd' || fd->cFileName[pos - 3] == 'D') &&
                         (fd->cFileName[pos - 2] == 'l' || fd->cFileName[pos - 2] == 'L') &&
                         (fd->cFileName[pos - 1] == 'l' || fd->cFileName[pos - 1] == 'L'))
-                {
-                    auto path = dir + L'\\' + fd->cFileName;
-
-                    if (GetModuleHandle(path.c_str()) == NULL)
                     {
-                        auto h = LoadLibraryW(path);
-                        SetCurrentDirectoryW(dir.c_str()); //in case asi switched it
+                        auto path = dir + L'\\' + fd->cFileName;
 
-                        if (h == NULL)
+                        if (GetModuleHandle(path.c_str()) == NULL)
                         {
-                            auto e = GetLastError();
-                            if (e != ERROR_DLL_INIT_FAILED) // in case dllmain returns false
+                            auto h = LoadLibraryW(path);
+                            SetCurrentDirectoryW(dir.c_str()); //in case asi switched it
+
+                            if (h == NULL)
                             {
-                                std::wstring msg = L"Unable to load " + std::wstring(fd->cFileName) + L". Error: " + std::to_wstring(e);
-                                MessageBoxW(0, msg.c_str(), L"Mono Loader", MB_ICONERROR);
+                                auto e = GetLastError();
+                                if (e != ERROR_DLL_INIT_FAILED) // in case dllmain returns false
+                                {
+                                    std::wstring msg = L"Unable to load " + std::wstring(fd->cFileName) + L". Error: " + std::to_wstring(e);
+                                    MessageBoxW(0, msg.c_str(), L"Mono Loader", MB_ICONERROR);
+                                }
                             }
-                        }
-                        else
-                        {
-                            auto fileName = std::wstring(fd->cFileName);
-                            auto ignoreFile = fileName.substr(0, fileName.length() - 4) + L".ignore";
-                            if (std::filesystem::exists(ignoreFile))
-                                continue;
-                            auto libPath = dir + L"\\" + fileName;
-                            auto namespaceName = fileName.substr(0, fileName.length() - 4);
-                            //Maybe one day we can write some ini file for each lib so it's not tied so heavily
-                            MonoLibLoader::GetInstance()->LibsToLoad.push_back(LibInfo(
-                                WStringToString(libPath),
-                                WStringToString(namespaceName),
-                                WStringToString(namespaceName),
-                                "Init"
-                            ));
+                            else
+                            {
+                                auto fileName = std::wstring(fd->cFileName);
+                                auto ignoreFile = fileName.substr(0, fileName.length() - 4) + L".ignore";
+                                if (std::filesystem::exists(ignoreFile))
+                                    continue;
+                                auto libPath = dir + L"\\" + fileName;
+                                auto namespaceName = fileName.substr(0, fileName.length() - 4);
+                                //Maybe one day we can write some ini file for each lib so it's not tied so heavily
+                                MonoLibLoader::GetInstance()->LibsToLoad.push_back(LibInfo(
+                                    WStringToString(libPath),
+                                    WStringToString(namespaceName),
+                                    WStringToString(namespaceName),
+                                    "Init"
+                                ));
+                            }
                         }
                     }
                 }
-            }
+            } while (FindNextFileW(dllFile, fd));
+            FindClose(dllFile);
         }
-        while (FindNextFileW(asiFile, fd));
-        FindClose(asiFile);
-    }
+    }    
 }
 
 void LoadPlugins()
